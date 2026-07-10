@@ -1,9 +1,10 @@
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startSession, query } from './simss.mjs';
 import { mintToken, fetchCatalogMap } from './shopify.mjs';
 import { buildIndex, buildTallajeMap } from './transform.mjs';
+import { geocodeBoutique, geoKey, sleep } from './geocode.mjs';
 
 // Cantidades servidas por posición de talla (TALLA1..TALLA24).
 const TALLA_QTY = Array.from({ length: 24 }, (_, i) => `TALLA${i + 1}`);
@@ -53,7 +54,30 @@ async function main() {
     throw new Error(`Resultado sospechosamente vacío (${rows.length} líneas, ${index.models.length} modelos, ${index.meta.boutiqueCount} boutiques). NO se sobrescribe data.json.`);
   }
 
-  const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'web', 'data.json');
+  // Geocodificación cache-first: solo se geocodifican boutiques nuevas (respeta
+  // el límite de Nominatim con 1.1s entre llamadas). Las coordenadas se guardan
+  // en geocache.json y se añaden a cada boutique del data.json.
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const cachePath = join(root, 'geocache.json');
+  const cache = existsSync(cachePath) ? JSON.parse(readFileSync(cachePath, 'utf8')) : {};
+  const MAX_NEW = Number(process.env.GEOCODE_MAX_NEW || 400);
+  let newly = 0;
+  for (const cod of Object.keys(index.boutiques)) {
+    const b = index.boutiques[cod];
+    const key = geoKey(b);
+    if (cache[key]) { Object.assign(b, cache[key]); continue; }
+    if (newly >= MAX_NEW) continue; // el resto se geocodifica en la próxima ejecución
+    const geo = await geocodeBoutique(b);
+    cache[key] = geo;
+    Object.assign(b, geo);
+    newly += 1;
+    await sleep(1100);
+  }
+  writeFileSync(cachePath, JSON.stringify(cache));
+  const located = Object.values(index.boutiques).filter((b) => b.lat).length;
+  console.error(`Geocode: ${located}/${index.meta.boutiqueCount} boutiques ubicadas (${newly} nuevas esta ejecución)`);
+
+  const out = join(root, 'web', 'data.json');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(index));
   console.error(`OK → ${index.meta.modelCount} modelos, ${index.meta.boutiqueCount} boutiques → web/data.json`);
