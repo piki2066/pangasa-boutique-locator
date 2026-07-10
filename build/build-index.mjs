@@ -45,6 +45,14 @@ async function main() {
   }
 
   const index = buildIndex(rows, catalogMap, new Set(), new Date().toISOString(), tallajeMap);
+
+  // Red de seguridad: si SIMSS devuelve algo sospechosamente vacío (caída, cambio de
+  // temporada, etc.), abortamos SIN sobrescribir data.json → la web conserva el último
+  // dato bueno en vez de quedarse en blanco.
+  if (rows.length === 0 || index.models.length < 20 || index.meta.boutiqueCount < 20) {
+    throw new Error(`Resultado sospechosamente vacío (${rows.length} líneas, ${index.models.length} modelos, ${index.meta.boutiqueCount} boutiques). NO se sobrescribe data.json.`);
+  }
+
   const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'web', 'data.json');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(index));
