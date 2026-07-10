@@ -1,4 +1,5 @@
 name: Refrescar disponibilidad boutiques
+# Regenera web/data.json desde SIMSS y, al hacer push, dispara el deploy de Pages.
 on:
   schedule:
     - cron: '0 5 * * *'   # 05:00 UTC (07:00 España verano) cada día
