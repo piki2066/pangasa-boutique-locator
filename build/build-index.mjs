@@ -3,9 +3,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startSession, query } from './simss.mjs';
 import { mintToken, fetchCatalogMap } from './shopify.mjs';
-import { buildIndex } from './transform.mjs';
+import { buildIndex, buildTallajeMap } from './transform.mjs';
 
-const AV = ['COD_SERIE_MODELO','NUM_COLOR','DESC_COLOR','COD_CLIENTE','NOMBRE_CLIENTE','NOMBRE_COMERCIAL_CLIENTE','DIRECCION','LOCALIDAD','DESC_PROVINCIA','TELEFONO_CLIENTE'];
+// Cantidades servidas por posición de talla (TALLA1..TALLA24).
+const TALLA_QTY = Array.from({ length: 24 }, (_, i) => `TALLA${i + 1}`);
+const AV = ['COD_SERIE_MODELO','NUM_COLOR','DESC_COLOR','COD_CLIENTE','NOMBRE_CLIENTE','NOMBRE_COMERCIAL_CLIENTE','DIRECCION','LOCALIDAD','DESC_PROVINCIA','TELEFONO_CLIENTE', ...TALLA_QTY];
+
+// Etiquetas de talla por posición (TALLAJE_1..TALLAJE_24) de EProdModelos.
+const TALLAJE_LABELS = ['COD_SERIE_MODELO', ...Array.from({ length: 24 }, (_, i) => `TALLAJE_${i + 1}`)];
 
 async function main() {
   const seasonId = Number(process.env.SIMSS_SEASON_ID || 15);
@@ -16,6 +21,10 @@ async function main() {
   const sid = await startSession(user, pass);
   const rows = await query(user, sid, 'EComPrendasServidas', { ID_TEMPORADA_ALBARAN: seasonId }, AV, {});
   console.error(`SIMSS: ${rows.length} líneas servidas (temporada ${seasonId})`);
+
+  const tallajeRows = await query(user, sid, 'EProdModelos', {}, TALLAJE_LABELS, {});
+  const tallajeMap = buildTallajeMap(tallajeRows);
+  console.error(`SIMSS: ${tallajeMap.size} modelos con tallaje (etiquetas de talla)`);
 
   const refs = new Set(rows.map((r) => String(r.COD_SERIE_MODELO || '').trim()).filter(Boolean));
   let catalogMap = new Map();
@@ -35,7 +44,7 @@ async function main() {
     console.error('AVISO: catálogo Shopify no disponible, sigo sin fotos:', e.message);
   }
 
-  const index = buildIndex(rows, catalogMap, new Set(), new Date().toISOString());
+  const index = buildIndex(rows, catalogMap, new Set(), new Date().toISOString(), tallajeMap);
   const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'web', 'data.json');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(index));

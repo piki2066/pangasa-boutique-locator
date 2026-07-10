@@ -2,9 +2,41 @@ const EXCLUDE_CLIENTS = new Set(['CONSUMIDOR FINAL']);
 const JUNK_MODELS = new Set(['1000']);
 const JUNK_COLORS = new Set(['CONCEPTO']);
 
-export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new Set(), generatedAt = '') {
+// EProdModelos expone las etiquetas de talla por posición en TALLAJE_1..TALLAJE_24
+// (via /query o findall). Devuelve Map<ref, [label pos1, label pos2, ...]> (null si vacía).
+export function buildTallajeMap(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const ref = String(r.COD_SERIE_MODELO || '').trim();
+    if (!ref) continue;
+    const labels = [];
+    for (let j = 1; j <= 24; j++) {
+      const v = (r[`TALLAJE_${j}`] ?? '').toString().trim();
+      labels.push(v || null);
+    }
+    map.set(ref, labels);
+  }
+  return map;
+}
+
+// Posiciones (1..24) con cantidad servida > 0 en una fila de prendas servidas.
+function servedPositions(row) {
+  const pos = [];
+  for (let j = 1; j <= 24; j++) {
+    const q = Number(row[`TALLA${j}`]);
+    if (Number.isFinite(q) && q > 0) pos.push(j);
+  }
+  return pos;
+}
+
+// Etiquetas de talla, en orden de posición, para un conjunto de posiciones.
+function labelSizes(posSet, ladder) {
+  return [...posSet].sort((a, b) => a - b).map((p) => ladder[p - 1]).filter(Boolean);
+}
+
+export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new Set(), generatedAt = '', tallajeMap = new Map()) {
   const boutiques = {};
-  const modelMap = new Map(); // ref -> { ref, colors:Set, boutiques:Map<cod,Set> }
+  const modelMap = new Map(); // ref -> { ref, colors:Set, positions:Set, boutiques:Map<cod,{colors:Set,positions:Set}> }
 
   for (const r of rows) {
     const legal = (r.NOMBRE_CLIENTE || '').trim();
@@ -28,23 +60,30 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
     }
 
     let m = modelMap.get(ref);
-    if (!m) { m = { ref, colors: new Set(), boutiques: new Map() }; modelMap.set(ref, m); }
+    if (!m) { m = { ref, colors: new Set(), positions: new Set(), boutiques: new Map() }; modelMap.set(ref, m); }
     if (color) m.colors.add(color);
     let bc = m.boutiques.get(cod);
-    if (!bc) { bc = new Set(); m.boutiques.set(cod, bc); }
-    if (color) bc.add(color);
+    if (!bc) { bc = { colors: new Set(), positions: new Set() }; m.boutiques.set(cod, bc); }
+    if (color) bc.colors.add(color);
+    for (const p of servedPositions(r)) { m.positions.add(p); bc.positions.add(p); }
   }
 
   const esCmp = (a, b) => String(a).localeCompare(String(b), 'es');
   const models = [...modelMap.values()].map((m) => {
     const cat = catalogMap.get(m.ref) || {};
+    const ladder = tallajeMap.get(m.ref) || [];
     return {
       ref: m.ref,
       title: cat.title || `Ref. ${m.ref}`,
       handle: cat.handle || null,
       image: cat.image || null,
       colors: [...m.colors].sort(esCmp),
-      boutiques: [...m.boutiques.entries()].map(([cod, colors]) => ({ cod, colors: [...colors].sort(esCmp) })),
+      sizes: labelSizes(m.positions, ladder),
+      boutiques: [...m.boutiques.entries()].map(([cod, bc]) => ({
+        cod,
+        colors: [...bc.colors].sort(esCmp),
+        sizes: labelSizes(bc.positions, ladder),
+      })),
     };
   }).sort((a, b) => esCmp(a.title, b.title));
 

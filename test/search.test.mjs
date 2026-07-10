@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import { normalize, searchModels, resolveBoutiques, mapsUrl, telHref, formatPhone } from '../web/search.js';
 
 const models = [
-  { ref:'1619105', title:'Blusa Hojas C.Volante', boutiques:[{cod:'07838',colors:['Bruma']},{cod:'00529',colors:['Bruma']}] },
-  { ref:'1406009', title:'Trenka Luxury', boutiques:[{cod:'07838',colors:['Marfil']}] },
+  { ref:'1619105', title:'Blusa Hojas C.Volante', boutiques:[
+    { cod:'07838', colors:['Bruma'], sizes:['1m','3m','6m'] },
+    { cod:'00529', colors:['Bruma'], sizes:['12m'] },
+  ] },
+  { ref:'1406009', title:'Trenka Luxury', boutiques:[{ cod:'07838', colors:['Marfil'], sizes:['3M'] }] },
 ];
 const boutiques = {
   '07838': { name:'ROSA Y AZUL', address:'AV. ARCADIO 98', city:'BURELA', province:'Lugo', phone:'982580569' },
@@ -22,13 +25,25 @@ test('searchModels busca por título (sin acentos) y por referencia', () => {
   assert.equal(searchModels(models, 'zzz').length, 0);
 });
 
-test('resolveBoutiques resuelve contacto y filtra por provincia', () => {
+test('resolveBoutiques resuelve contacto, tallas y filtra por provincia', () => {
   const all = resolveBoutiques(models[0], boutiques, '');
   assert.equal(all.length, 2);
   assert.equal(all[0].province, 'Asturias'); // orden por provincia
+  assert.deepEqual(all[1].sizes, ['1m','3m','6m']); // tallas de la boutique presentes
   const lugo = resolveBoutiques(models[0], boutiques, 'Lugo');
   assert.equal(lugo.length, 1);
   assert.equal(lugo[0].name, 'ROSA Y AZUL');
+});
+
+test('resolveBoutiques filtra por talla', () => {
+  const t12 = resolveBoutiques(models[0], boutiques, '', '12m');
+  assert.equal(t12.length, 1);
+  assert.equal(t12[0].name, 'LA TRIBU');
+  const t3 = resolveBoutiques(models[0], boutiques, '', '3m');
+  assert.equal(t3.length, 1);
+  assert.equal(t3[0].name, 'ROSA Y AZUL');
+  // provincia + talla combinadas: 12m solo en Asturias
+  assert.equal(resolveBoutiques(models[0], boutiques, 'Lugo', '12m').length, 0);
 });
 
 test('mapsUrl / telHref / formatPhone', () => {
