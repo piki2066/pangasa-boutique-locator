@@ -3,9 +3,9 @@ name: Refrescar disponibilidad boutiques
 # (un push hecho con GITHUB_TOKEN no dispara deploy.yml, así que desplegamos aquí).
 on:
   schedule:
-    # Cada 30 min de 08:00 a 00:00 hora de España (verano CEST=UTC+2 → 06:00-22:00 UTC).
+    # Cada 10 min de 08:00 a 00:00 hora de España (verano CEST=UTC+2 → 06:00-22:00 UTC).
     # En invierno (CET=UTC+1) la ventana efectiva será 07:00-23:00; GitHub usa UTC fijo.
-    - cron: '0,30 6-21 * * *'   # 08:00 … 23:30 España
+    - cron: '*/10 6-21 * * *'   # cada 10 min, 08:00 … 23:50 España
     - cron: '0 22 * * *'        # 00:00 España
   workflow_dispatch: {}
 permissions:
