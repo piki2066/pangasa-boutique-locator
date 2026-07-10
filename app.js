@@ -12,6 +12,11 @@ async function load() {
   $('loc-meta').textContent = `${state.data.meta.modelCount} prendas · ${state.data.meta.boutiqueCount} boutiques · ${state.data.meta.seasonLabel}`;
   const sel = $('prov');
   for (const p of state.data.provinces) { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); }
+  // Enlaces directos: ?ref=<referencia> o ?q=<búsqueda> (compartibles)
+  const params = new URLSearchParams(location.search);
+  state.term = params.get('q') || '';
+  if (params.get('ref')) state.selectedRef = params.get('ref').trim();
+  if (state.term) $('q').value = state.term;
   renderCatalog();
   renderResults();
 }
