@@ -2,6 +2,14 @@ const EXCLUDE_CLIENTS = new Set(['CONSUMIDOR FINAL']);
 const JUNK_MODELS = new Set(['1000']);
 const JUNK_COLORS = new Set(['CONCEPTO']);
 
+// Básicos de CONTINUIDAD (Cont.AW, temporada 12): se pueden reservar aunque no haya stock.
+export const CONTINUITY_REFS = new Set([
+  '1406009', '1406930', '1411930', '1412001', '1412007', '1412540', '1412901', '1412930',
+  '1413650', '1414000', '1414001', '1414024', '1414400', '1414409', '1414930', '1415310',
+  '1415703', '1425100', '1430004', '1445000', '146000', '146001', '147000', '147001',
+  '148000', '148001', '1484000', '1642100',
+]);
+
 // EProdModelos expone las etiquetas de talla por posición en TALLAJE_1..TALLAJE_24
 // (via /query o findall). Devuelve Map<ref, [label pos1, label pos2, ...]> (null si vacía).
 export function buildTallajeMap(rows) {
@@ -77,6 +85,7 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
       title: cat.title || `Ref. ${m.ref}`,
       handle: cat.handle || null,
       image: cat.image || null,
+      continuity: CONTINUITY_REFS.has(m.ref),
       colors: [...m.colors].sort(esCmp),
       sizes: labelSizes(m.positions, ladder),
       boutiques: [...m.boutiques.entries()].map(([cod, bc]) => ({

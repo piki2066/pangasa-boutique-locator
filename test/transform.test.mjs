@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildIndex, buildTallajeMap } from '../build/transform.mjs';
+import { buildIndex, buildTallajeMap, CONTINUITY_REFS } from '../build/transform.mjs';
 
 // Cantidades por posición: TALLA1=1m, TALLA2=3m, TALLA3=6m, TALLA5=12m (según el tallaje).
 const rows = [
@@ -69,6 +69,14 @@ test('etiqueta las tallas servidas por modelo y por boutique con el tallaje', ()
   assert.deepEqual(rosa.sizes, ['1m', '3m', '6m']);
   const tribu = m.boutiques.find(b => b.cod === '00529');
   assert.deepEqual(tribu.sizes, ['12m']);
+});
+
+test('marca continuity solo en básicos de continuidad', () => {
+  const idx = buildIndex(rows, new Map()); // 1619105 NO es continuidad
+  assert.equal(idx.models[0].continuity, false);
+  const contRows = [{ COD_SERIE_MODELO:'1406009', DESC_COLOR:'Marfil', COD_CLIENTE:'07838', NOMBRE_CLIENTE:'X SL', NOMBRE_COMERCIAL_CLIENTE:'X', DIRECCION:'y', LOCALIDAD:'z', DESC_PROVINCIA:'Lugo', TELEFONO_CLIENTE:'1' }];
+  assert.equal(buildIndex(contRows, new Map()).models[0].continuity, true);
+  assert.ok(CONTINUITY_REFS.has('1406009'));
 });
 
 test('sin tallajeMap las tallas quedan vacías (sin romper)', () => {

@@ -42,6 +42,7 @@ function renderCatalog() {
   const models = searchModels(state.data.models, state.term).filter((m) => m.image).slice(0, 40);
   $('catalog').innerHTML = models.map((m) => `
     <div class="loc-chip${m.ref === state.selectedRef ? ' active' : ''}" data-ref="${esc(m.ref)}" role="button" tabindex="0" aria-pressed="${m.ref === state.selectedRef}">
+      ${m.continuity ? '<span class="loc-chiptag" title="Se puede reservar aunque no haya stock">Reservable</span>' : ''}
       <img src="${esc(m.image)}" alt="${esc(m.title)}" loading="lazy">
       <div class="cap">${esc(m.title)}</div>
     </div>`).join('');
@@ -91,6 +92,7 @@ function renderResults() {
       : `<p class="loc-empty">Sin boutiques con ese filtro. Prueba con "Todas las provincias" o "Todas las tallas".</p>`;
     return `<h2 class="loc-model">${esc(m.title)}</h2>
       <p class="loc-modelmeta">Ref. ${esc(m.ref)} · disponible en ${bs.length} ${bs.length === 1 ? 'boutique' : 'boutiques'}</p>
+      ${m.continuity ? `<p class="loc-reserva">🔁 Básico de continuidad — se puede <strong>reservar aunque no haya stock</strong></p>` : ''}
       ${summary ? `<div class="loc-bmeta loc-summary">${summary}</div>` : ''}${cards}`;
   }).join('');
 }
