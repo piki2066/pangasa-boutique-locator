@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pangasa Baby — Dónde encontrarnos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app">
+  <header class="loc-head">
+    <p class="loc-eyebrow">Consulta por prenda</p>
+    <h1 class="loc-title">Encuentra tu prenda favorita en tu boutique más cercana</h1>
+    <p class="loc-sub" id="loc-meta">Cargando disponibilidad…</p>
+  </header>
+  <div class="loc-controls">
+    <input id="q" class="loc-input" type="search" placeholder="Busca una prenda o referencia…" autocomplete="off" aria-label="Buscar prenda o referencia">
+    <select id="prov" class="loc-select" aria-label="Filtrar por provincia"><option value="">Todas las provincias</option></select>
+  </div>
+  <section id="catalog" class="loc-catalog" aria-label="Catálogo"></section>
+  <section id="results" class="loc-results"></section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
