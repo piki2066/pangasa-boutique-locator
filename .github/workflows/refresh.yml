@@ -1,16 +1,22 @@
 name: Refrescar disponibilidad boutiques
-# Regenera web/data.json desde SIMSS y, al hacer push, dispara el deploy de Pages.
+# Regenera web/data.json desde SIMSS y despliega Pages en el mismo run
+# (un push hecho con GITHUB_TOKEN no dispara deploy.yml, así que desplegamos aquí).
 on:
   schedule:
     - cron: '0 5 * * *'   # 05:00 UTC (07:00 España verano) cada día
   workflow_dispatch: {}
 permissions:
   contents: write
+  pages: write
+  id-token: write
 concurrency:
-  group: refresh
+  group: pages
   cancel-in-progress: false
 jobs:
-  build:
+  refresh:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +34,7 @@ jobs:
           SHOPIFY_CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
           SHOPIFY_API_VERSION: ${{ secrets.SHOPIFY_API_VERSION }}
         run: node build/build-index.mjs
-      - name: Commit si cambió (dispara el deploy de Pages)
+      - name: Commit histórico (si cambió)
         run: |
           if ! git diff --quiet -- web/data.json; then
             git config user.name "pangasa-bot"
@@ -39,3 +45,9 @@ jobs:
           else
             echo "Sin cambios en data.json"
           fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4
