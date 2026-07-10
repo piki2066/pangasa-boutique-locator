@@ -3,6 +3,9 @@ import { searchModels, resolveBoutiques, mapsUrl, telHref, formatPhone } from '.
 const state = { data: null, selectedRef: null, term: '', province: '', size: '' };
 const $ = (id) => document.getElementById(id);
 
+// Mes de entrega para reservas de básicos de continuidad sin stock (editable).
+const RESERVA_ENTREGA = 'octubre';
+
 function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 const chips = (items, cls) => items.map((x) => `<span class="${cls}">${esc(x)}</span>`).join('');
 
@@ -92,7 +95,7 @@ function renderResults() {
       : `<p class="loc-empty">Sin boutiques con ese filtro. Prueba con "Todas las provincias" o "Todas las tallas".</p>`;
     return `<h2 class="loc-model">${esc(m.title)}</h2>
       <p class="loc-modelmeta">Ref. ${esc(m.ref)} · disponible en ${bs.length} ${bs.length === 1 ? 'boutique' : 'boutiques'}</p>
-      ${m.continuity ? `<p class="loc-reserva">🔁 Básico de continuidad — se puede <strong>reservar aunque no haya stock</strong></p>` : ''}
+      ${m.continuity ? `<p class="loc-reserva">🔁 Básico de continuidad — se puede <strong>reservar aunque no haya stock</strong> · entrega prevista en <strong>${esc(RESERVA_ENTREGA)}</strong></p>` : ''}
       ${summary ? `<div class="loc-bmeta loc-summary">${summary}</div>` : ''}${cards}`;
   }).join('');
 }
