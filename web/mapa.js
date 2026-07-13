@@ -1,7 +1,12 @@
 /* global L */
 const $ = (id) => document.getElementById(id);
 const esc = (s) => (s ?? '').toString().replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const mapsUrl = (name, city) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${city}`)}`;
+// nombre + dirección de envío completa → Google Maps lleva al punto exacto
+const mapsUrl = (b) => {
+  const q = [b.name, b.address, [b.postal, b.city].filter(Boolean).join(' ')]
+    .map((s) => (s || '').toString().trim()).filter(Boolean).join(', ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+};
 const telHref = (p) => `tel:${(p || '').replace(/\s+/g, '')}`;
 const fmtPhone = (p) => { const d = (p || '').replace(/\D/g, ''); return d.length === 9 ? `${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5, 7)} ${d.slice(7)}` : p; };
 
@@ -35,7 +40,7 @@ function popupHtml(b) {
     ${b.address ? `<div class="bpop-addr">${esc(b.address)}</div>` : ''}
     <div class="bpop-actions">
       ${b.phone ? `<a class="bpop-tel" href="${esc(telHref(b.phone))}">📞 ${esc(fmtPhone(b.phone))}</a>` : ''}
-      <a class="bpop-map" href="${esc(mapsUrl(b.name, b.city))}" target="_blank" rel="noopener">Cómo llegar ↗</a>
+      <a class="bpop-map" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener">Cómo llegar ↗</a>
     </div>`;
 }
 

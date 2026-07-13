@@ -68,7 +68,7 @@ function boutiqueCard(b) {
       ${meta ? `<div class="loc-bmeta">${meta}</div>` : ''}
       <div class="loc-bactions">
         ${b.phone ? `<a class="loc-btel" href="${esc(telHref(b.phone))}">📞 ${esc(formatPhone(b.phone))}</a>` : ''}
-        <a class="loc-bmap" href="${esc(mapsUrl(b.name, b.city))}" target="_blank" rel="noopener">Cómo llegar ↗</a>
+        <a class="loc-bmap" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener">Cómo llegar ↗</a>
       </div>
     </div>`;
 }

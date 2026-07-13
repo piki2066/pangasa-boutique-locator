@@ -19,8 +19,13 @@ export function resolveBoutiques(model, boutiquesDict, province, size = '') {
   return filtered.sort((a, b) => esCmp(a.province, b.province) || esCmp(a.city, b.city));
 }
 
-export function mapsUrl(name, city) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${city}`)}`;
+// "Cómo llegar": nombre + dirección de envío completa (calle, CP, ciudad) para
+// que Google Maps lleve al punto exacto donde está el producto.
+export function mapsUrl(b) {
+  if (typeof b === 'string') b = { name: b, city: arguments[1] }; // compat firma antigua
+  const q = [b.name, b.address, [b.postal, b.city].filter(Boolean).join(' ')]
+    .map((s) => (s || '').toString().trim()).filter(Boolean).join(', ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
 export function telHref(phone) {

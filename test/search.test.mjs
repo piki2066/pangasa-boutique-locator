@@ -47,7 +47,11 @@ test('resolveBoutiques filtra por talla', () => {
 });
 
 test('mapsUrl / telHref / formatPhone', () => {
-  assert.ok(mapsUrl('ROSA Y AZUL', 'BURELA').includes('ROSA%20Y%20AZUL%20BURELA'));
+  // dirección de envío completa: nombre, calle, CP ciudad
+  const u = mapsUrl({ name:'ROSA Y AZUL', address:'AV. ARCADIO PARDIÑAS 98', postal:'27880', city:'BURELA' });
+  assert.ok(u.includes(encodeURIComponent('ROSA Y AZUL, AV. ARCADIO PARDIÑAS 98, 27880 BURELA')));
+  // sin dirección → cae a nombre + ciudad
+  assert.ok(mapsUrl({ name:'X', city:'LUGO' }).includes(encodeURIComponent('X, LUGO')));
   assert.equal(telHref('982 58 05 69'), 'tel:982580569');
   assert.equal(formatPhone('982580569'), '982 58 05 69');
 });
