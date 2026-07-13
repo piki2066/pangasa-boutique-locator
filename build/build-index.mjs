@@ -27,6 +27,16 @@ async function main() {
   const tallajeMap = buildTallajeMap(tallajeRows);
   console.error(`SIMSS: ${tallajeMap.size} modelos con tallaje (etiquetas de talla)`);
 
+  // Dirección de ENVÍO (no la fiscal): punto de envío habitual de cada cliente.
+  const envioRows = await query(user, sid, 'EComPuntosEnvioClientes', { PUNTO_HABITUAL: true },
+    ['COD_CLIENTE', 'DIRECCION', 'COD_POSTAL', 'LOCALIDAD', 'DESC_PROVINCIA', 'TELEFONO', 'COD_PAIS'], {});
+  const envioByCod = new Map();
+  for (const e of envioRows) {
+    const cod = (e.COD_CLIENTE || '').trim();
+    if (cod && !envioByCod.has(cod)) envioByCod.set(cod, e);
+  }
+  console.error(`SIMSS: ${envioByCod.size} clientes con dirección de envío habitual`);
+
   const refs = new Set(rows.map((r) => String(r.COD_SERIE_MODELO || '').trim()).filter(Boolean));
   let catalogMap = new Map();
   try {
@@ -53,6 +63,23 @@ async function main() {
   if (rows.length === 0 || index.models.length < 20 || index.meta.boutiqueCount < 20) {
     throw new Error(`Resultado sospechosamente vacío (${rows.length} líneas, ${index.models.length} modelos, ${index.meta.boutiqueCount} boutiques). NO se sobrescribe data.json.`);
   }
+
+  // Sustituir la dirección FISCAL por la de ENVÍO (punto habitual) en cada boutique.
+  let envioApplied = 0;
+  for (const cod of Object.keys(index.boutiques)) {
+    const e = envioByCod.get(cod);
+    if (!e) continue;
+    const b = index.boutiques[cod];
+    if ((e.DIRECCION || '').trim()) b.address = e.DIRECCION.trim();
+    if ((e.LOCALIDAD || '').trim()) b.city = e.LOCALIDAD.trim();
+    if ((e.DESC_PROVINCIA || '').trim()) b.province = e.DESC_PROVINCIA.trim();
+    if ((e.TELEFONO || '').trim()) b.phone = e.TELEFONO.trim();
+    b.postal = (e.COD_POSTAL || '').trim();
+    envioApplied += 1;
+  }
+  index.provinces = [...new Set(Object.values(index.boutiques).map((b) => b.province).filter(Boolean))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  console.error(`Envío: dirección de envío aplicada a ${envioApplied}/${index.meta.boutiqueCount} boutiques`);
 
   // Geocodificación cache-first: solo se geocodifican boutiques nuevas (respeta
   // el límite de Nominatim con 1.1s entre llamadas). Las coordenadas se guardan

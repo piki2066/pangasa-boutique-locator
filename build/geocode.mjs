@@ -7,8 +7,8 @@ const UA = 'pangasa-boutique-locator/1.0 (https://github.com/piki2066/pangasa-bo
 export const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 // Clave de caché estable e insensible a mayúsculas/espacios.
-export function geoKey({ address, city, province }) {
-  return [address, city, province].map((s) => (s || '').trim().toLowerCase()).join('|');
+export function geoKey({ address, postal, city, province }) {
+  return [address, postal, city, province].map((s) => (s || '').toString().trim().toLowerCase()).join('|');
 }
 
 async function nominatim(q) {
@@ -25,12 +25,12 @@ async function nominatim(q) {
 // Intenta dirección completa; si falla, cae a nivel ciudad. Devuelve
 // { lat, lng, precision:'address'|'city' } o { lat:null, lng:null, precision:'none' }.
 export async function geocodeBoutique(b) {
-  const full = [b.address, b.city, b.province, 'España'].filter(Boolean).join(', ');
+  const full = [b.address, b.postal, b.city, b.province, 'España'].filter(Boolean).join(', ');
   if (full) {
     const hit = await nominatim(full);
     if (hit) return { ...hit, precision: 'address' };
   }
-  const cityQ = [b.city, b.province, 'España'].filter(Boolean).join(', ');
+  const cityQ = [b.postal, b.city, b.province, 'España'].filter(Boolean).join(', ');
   if (cityQ) {
     await sleep(1100);
     const hit = await nominatim(cityQ);
