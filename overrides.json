@@ -1,0 +1,13 @@
+{
+  "_comment": "Correcciones manuales por COD_CLIENTE. Se aplican SIEMPRE encima de los datos de SIMSS en cada build. Solo los campos presentes se sobrescriben.",
+  "boutiques": {
+    "00855": {
+      "_nombre": "MOBU KIDZ (Uxue Morejón)",
+      "address": "Carrer Major de Sarrià 51",
+      "postal": "08017",
+      "city": "Barcelona",
+      "province": "Barcelona",
+      "phone": "690143517"
+    }
+  }
+}

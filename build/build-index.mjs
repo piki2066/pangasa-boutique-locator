@@ -77,9 +77,26 @@ async function main() {
     b.postal = (e.COD_POSTAL || '').trim();
     envioApplied += 1;
   }
+  console.error(`Envío: dirección de envío aplicada a ${envioApplied}/${index.meta.boutiqueCount} boutiques`);
+
+  // Correcciones manuales (overrides.json) — pisan SIEMPRE lo que venga de SIMSS.
+  const ovPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'overrides.json');
+  if (existsSync(ovPath)) {
+    const ov = JSON.parse(readFileSync(ovPath, 'utf8')).boutiques || {};
+    let ovApplied = 0;
+    for (const [cod, fields] of Object.entries(ov)) {
+      const b = index.boutiques[cod];
+      if (!b) continue;
+      for (const k of ['name', 'address', 'postal', 'city', 'province', 'phone']) {
+        if (fields[k]) b[k] = fields[k];
+      }
+      ovApplied += 1;
+    }
+    console.error(`Overrides: ${ovApplied} correcciones manuales aplicadas`);
+  }
+
   index.provinces = [...new Set(Object.values(index.boutiques).map((b) => b.province).filter(Boolean))]
     .sort((a, b) => String(a).localeCompare(String(b), 'es'));
-  console.error(`Envío: dirección de envío aplicada a ${envioApplied}/${index.meta.boutiqueCount} boutiques`);
 
   // Geocodificación cache-first: solo se geocodifican boutiques nuevas (respeta
   // el límite de Nominatim con 1.1s entre llamadas). Las coordenadas se guardan
