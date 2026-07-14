@@ -53,6 +53,8 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
     if (!cod || extraExcludeCods.has(cod)) continue;
     const ref = String(r.COD_SERIE_MODELO || '').trim();
     if (!ref || JUNK_MODELS.has(ref)) continue;
+    // Solo referencias de INVIERNO (empiezan por 1); las de verano empiezan por 2.
+    if (!ref.startsWith('1')) continue;
     const color = (r.DESC_COLOR || '').trim();
     if (color && JUNK_COLORS.has(color.toUpperCase())) continue;
 

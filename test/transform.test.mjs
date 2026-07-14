@@ -71,6 +71,12 @@ test('etiqueta las tallas servidas por modelo y por boutique con el tallaje', ()
   assert.deepEqual(tribu.sizes, ['12m']);
 });
 
+test('solo referencias de invierno (empiezan por 1); fuera verano (2) y raras (B)', () => {
+  const mk=(ref)=>({ COD_SERIE_MODELO:ref, DESC_COLOR:'Azul', COD_CLIENTE:'07838', NOMBRE_CLIENTE:'X SL', NOMBRE_COMERCIAL_CLIENTE:'X', DIRECCION:'y', LOCALIDAD:'z', DESC_PROVINCIA:'Lugo', TELEFONO_CLIENTE:'1' });
+  const idx = buildIndex([mk('1619105'), mk('2512008'), mk('B1113650')], new Map());
+  assert.deepEqual(idx.models.map(m=>m.ref), ['1619105']);
+});
+
 test('captura la familia (DESC_FAMILIA) con fallback', () => {
   const r=[{ COD_SERIE_MODELO:'1619105', DESC_COLOR:'Bruma', DESC_FAMILIA:'Blusas', COD_CLIENTE:'07838', NOMBRE_CLIENTE:'X', NOMBRE_COMERCIAL_CLIENTE:'X', DIRECCION:'y', LOCALIDAD:'z', DESC_PROVINCIA:'Lugo', TELEFONO_CLIENTE:'1' }];
   assert.equal(buildIndex(r, new Map()).models[0].family, 'Blusas');
