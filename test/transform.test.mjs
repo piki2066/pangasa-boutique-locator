@@ -71,6 +71,12 @@ test('etiqueta las tallas servidas por modelo y por boutique con el tallaje', ()
   assert.deepEqual(tribu.sizes, ['12m']);
 });
 
+test('captura la familia (DESC_FAMILIA) con fallback', () => {
+  const r=[{ COD_SERIE_MODELO:'1619105', DESC_COLOR:'Bruma', DESC_FAMILIA:'Blusas', COD_CLIENTE:'07838', NOMBRE_CLIENTE:'X', NOMBRE_COMERCIAL_CLIENTE:'X', DIRECCION:'y', LOCALIDAD:'z', DESC_PROVINCIA:'Lugo', TELEFONO_CLIENTE:'1' }];
+  assert.equal(buildIndex(r, new Map()).models[0].family, 'Blusas');
+  assert.equal(buildIndex(rows, new Map()).models[0].family, 'Otras prendas'); // fixture sin DESC_FAMILIA
+});
+
 test('marca continuity solo en básicos de continuidad', () => {
   const idx = buildIndex(rows, new Map()); // 1619105 NO es continuidad
   assert.equal(idx.models[0].continuity, false);

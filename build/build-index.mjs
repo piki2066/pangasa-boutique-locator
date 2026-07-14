@@ -8,7 +8,7 @@ import { geocodeBoutique, geoKey, sleep } from './geocode.mjs';
 
 // Cantidades servidas por posición de talla (TALLA1..TALLA24).
 const TALLA_QTY = Array.from({ length: 24 }, (_, i) => `TALLA${i + 1}`);
-const AV = ['COD_SERIE_MODELO','NUM_COLOR','DESC_COLOR','COD_CLIENTE','NOMBRE_CLIENTE','NOMBRE_COMERCIAL_CLIENTE','DIRECCION','LOCALIDAD','DESC_PROVINCIA','TELEFONO_CLIENTE', ...TALLA_QTY];
+const AV = ['COD_SERIE_MODELO','NUM_COLOR','DESC_COLOR','DESC_FAMILIA','COD_CLIENTE','NOMBRE_CLIENTE','NOMBRE_COMERCIAL_CLIENTE','DIRECCION','LOCALIDAD','DESC_PROVINCIA','TELEFONO_CLIENTE', ...TALLA_QTY];
 
 // Etiquetas de talla por posición (TALLAJE_1..TALLAJE_24) de EProdModelos.
 const TALLAJE_LABELS = ['COD_SERIE_MODELO', ...Array.from({ length: 24 }, (_, i) => `TALLAJE_${i + 1}`)];

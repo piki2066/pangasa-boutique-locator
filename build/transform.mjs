@@ -68,7 +68,8 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
     }
 
     let m = modelMap.get(ref);
-    if (!m) { m = { ref, colors: new Set(), positions: new Set(), boutiques: new Map() }; modelMap.set(ref, m); }
+    if (!m) { m = { ref, family: '', colors: new Set(), positions: new Set(), boutiques: new Map() }; modelMap.set(ref, m); }
+    if (!m.family && (r.DESC_FAMILIA || '').trim()) m.family = r.DESC_FAMILIA.trim();
     if (color) m.colors.add(color);
     let bc = m.boutiques.get(cod);
     if (!bc) { bc = { colors: new Set(), positions: new Set() }; m.boutiques.set(cod, bc); }
@@ -85,6 +86,7 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
       title: cat.title || `Ref. ${m.ref}`,
       handle: cat.handle || null,
       image: cat.image || null,
+      family: m.family || 'Otras prendas',
       continuity: CONTINUITY_REFS.has(m.ref),
       colors: [...m.colors].sort(esCmp),
       sizes: labelSizes(m.positions, ladder),

@@ -8,6 +8,7 @@ const RESERVA_ENTREGA = 'octubre';
 
 function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 const chips = (items, cls) => items.map((x) => `<span class="${cls}">${esc(x)}</span>`).join('');
+const esCmp = (a, b) => String(a).localeCompare(String(b), 'es', { numeric: true });
 
 async function load() {
   const r = await fetch('data.json');
@@ -20,19 +21,15 @@ async function load() {
   state.term = params.get('q') || '';
   if (params.get('ref')) state.selectedRef = params.get('ref').trim();
   if (state.term) $('q').value = state.term;
-  renderCatalog();
-  renderResults();
+  render();
 }
 
 function currentModels() {
-  let models = searchModels(state.data.models, state.term);
-  if (state.selectedRef) models = models.filter((m) => m.ref === state.selectedRef);
-  return models;
+  return searchModels(state.data.models, state.term);
 }
 
 // Rellena el desplegable de tallas con la unión de tallas de las prendas mostradas.
 function syncSizeOptions(models) {
-  const esCmp = (a, b) => String(a).localeCompare(String(b), 'es', { numeric: true });
   const sizes = [...new Set(models.flatMap((m) => m.sizes || []))].sort(esCmp);
   if (state.size && !sizes.includes(state.size)) state.size = '';
   const sel = $('size');
@@ -41,18 +38,36 @@ function syncSizeOptions(models) {
   sel.disabled = sizes.length === 0;
 }
 
-function renderCatalog() {
-  const models = searchModels(state.data.models, state.term).filter((m) => m.image).slice(0, 40);
-  $('catalog').innerHTML = models.map((m) => `
-    <div class="loc-chip${m.ref === state.selectedRef ? ' active' : ''}" data-ref="${esc(m.ref)}" role="button" tabindex="0" aria-pressed="${m.ref === state.selectedRef}">
+function cardHtml(m) {
+  const img = m.image
+    ? `<img src="${esc(m.image)}" alt="${esc(m.title)}" loading="lazy">`
+    : `<div class="loc-noimg"><img src="osito.png" alt=""></div>`;
+  return `
+    <div class="loc-card" data-ref="${esc(m.ref)}" role="button" tabindex="0" aria-label="${esc(m.title)}">
       ${m.continuity ? '<span class="loc-chiptag" title="Se puede reservar aunque no haya stock">Reservable</span>' : ''}
-      <img src="${esc(m.image)}" alt="${esc(m.title)}" loading="lazy">
-      <div class="cap">${esc(m.title)}</div>
-    </div>`).join('');
-  const selectChip = (el) => { state.selectedRef = el.dataset.ref; renderCatalog(); renderResults(); };
-  $('catalog').querySelectorAll('.loc-chip').forEach((el) => {
-    el.addEventListener('click', () => selectChip(el));
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectChip(el); } });
+      ${img}
+      <div class="cap">${esc(m.title)}<span class="ref">Ref. ${esc(m.ref)}</span></div>
+    </div>`;
+}
+
+// Catálogo COMPLETO: todas las prendas, con foto, agrupadas por tipo (familia SIMSS).
+function renderGrid(models) {
+  const groups = new Map();
+  for (const m of models) {
+    const f = m.family || 'Otras prendas';
+    if (!groups.has(f)) groups.set(f, []);
+    groups.get(f).push(m);
+  }
+  const fams = [...groups.keys()].sort(esCmp);
+  $('catalog').innerHTML = fams.map((f) => `
+    <section class="loc-fam">
+      <h2 class="loc-famtitle">${esc(f)} <span class="n">${groups.get(f).length}</span></h2>
+      <div class="loc-grid">${groups.get(f).map(cardHtml).join('')}</div>
+    </section>`).join('');
+  const select = (el) => { state.selectedRef = el.dataset.ref; render(); window.scrollTo({ top: 0 }); };
+  $('catalog').querySelectorAll('.loc-card').forEach((el) => {
+    el.addEventListener('click', () => select(el));
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(el); } });
   });
 }
 
@@ -73,34 +88,44 @@ function boutiqueCard(b) {
     </div>`;
 }
 
-function renderResults() {
-  const box = $('results');
-  const models = currentModels();
-  syncSizeOptions(models);
-
-  if (!state.selectedRef && !state.term) {
-    box.innerHTML = `<p class="loc-empty">Elige una prenda del catálogo o busca por nombre / referencia.</p>`;
-    return;
-  }
-  if (!models.length) { box.innerHTML = `<p class="loc-empty">No encontramos esa prenda. Prueba otro nombre o referencia.</p>`; return; }
-
-  box.innerHTML = models.slice(0, 12).map((m) => {
-    const bs = resolveBoutiques(m, state.data.boutiques, state.province, state.size);
-    const summary = [
-      m.sizes && m.sizes.length ? `<span class="loc-blabel">Tallas</span> ${chips(m.sizes, 'loc-size')}` : '',
-      m.colors && m.colors.length ? `<span class="loc-blabel">Colores</span> ${chips(m.colors, 'loc-color')}` : '',
-    ].filter(Boolean).join('<span class="loc-bsep"></span>');
-    const cards = bs.length
-      ? bs.map(boutiqueCard).join('')
-      : `<p class="loc-empty">Sin boutiques con ese filtro. Prueba con "Todas las provincias" o "Todas las tallas".</p>`;
-    return `<h2 class="loc-model">${esc(m.title)}</h2>
-      <p class="loc-modelmeta">Ref. ${esc(m.ref)} · disponible en ${bs.length} ${bs.length === 1 ? 'boutique' : 'boutiques'}</p>
-      ${m.continuity ? `<p class="loc-reserva">🔁 Básico de continuidad — se puede <strong>reservar aunque no haya stock</strong> · entrega prevista en <strong>${esc(RESERVA_ENTREGA)}</strong></p>` : ''}
-      ${summary ? `<div class="loc-bmeta loc-summary">${summary}</div>` : ''}${cards}`;
-  }).join('');
+// Ficha de la prenda seleccionada: sus boutiques (con filtros de provincia y talla).
+function renderDetail(m) {
+  const bs = resolveBoutiques(m, state.data.boutiques, state.province, state.size);
+  const summary = [
+    m.sizes && m.sizes.length ? `<span class="loc-blabel">Tallas</span> ${chips(m.sizes, 'loc-size')}` : '',
+    m.colors && m.colors.length ? `<span class="loc-blabel">Colores</span> ${chips(m.colors, 'loc-color')}` : '',
+  ].filter(Boolean).join('<span class="loc-bsep"></span>');
+  const cards = bs.length
+    ? bs.map(boutiqueCard).join('')
+    : `<p class="loc-empty">Sin boutiques con ese filtro. Prueba con "Todas las provincias" o "Todas las tallas".</p>`;
+  $('results').innerHTML = `
+    <button class="loc-back" id="backbtn">← Ver todas las prendas</button>
+    <div class="loc-detail">
+      ${m.image ? `<img class="loc-dimg" src="${esc(m.image)}" alt="${esc(m.title)}">` : ''}
+      <div>
+        <h2 class="loc-model">${esc(m.title)}</h2>
+        <p class="loc-modelmeta">Ref. ${esc(m.ref)} · ${esc(m.family || '')} · disponible en ${bs.length} ${bs.length === 1 ? 'boutique' : 'boutiques'}</p>
+        ${m.continuity ? `<p class="loc-reserva">🔁 Básico de continuidad — se puede <strong>reservar aunque no haya stock</strong> · entrega prevista en <strong>${esc(RESERVA_ENTREGA)}</strong></p>` : ''}
+        ${summary ? `<div class="loc-bmeta loc-summary">${summary}</div>` : ''}
+      </div>
+    </div>${cards}`;
+  $('backbtn').addEventListener('click', () => { state.selectedRef = null; render(); });
 }
 
-$('q').addEventListener('input', (e) => { state.term = e.target.value; state.selectedRef = null; renderCatalog(); renderResults(); });
-$('prov').addEventListener('change', (e) => { state.province = e.target.value; renderResults(); });
-$('size').addEventListener('change', (e) => { state.size = e.target.value; renderResults(); });
+function render() {
+  const models = currentModels();
+  const selected = state.selectedRef ? state.data.models.find((m) => m.ref === state.selectedRef) : null;
+  syncSizeOptions(selected ? [selected] : models);
+  if (selected) {
+    $('catalog').innerHTML = '';
+    renderDetail(selected);
+  } else {
+    $('results').innerHTML = models.length ? '' : `<p class="loc-empty">No encontramos esa prenda. Prueba otro nombre o referencia.</p>`;
+    renderGrid(models);
+  }
+}
+
+$('q').addEventListener('input', (e) => { state.term = e.target.value; state.selectedRef = null; render(); });
+$('prov').addEventListener('change', (e) => { state.province = e.target.value; render(); });
+$('size').addEventListener('change', (e) => { state.size = e.target.value; render(); });
 load().catch((e) => { $('loc-meta').textContent = 'No se pudo cargar la disponibilidad.'; console.error(e); });
