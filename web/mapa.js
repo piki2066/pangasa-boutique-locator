@@ -41,6 +41,7 @@ function popupHtml(b) {
     <div class="bpop-actions">
       ${b.phone ? `<a class="bpop-tel" href="${esc(telHref(b.phone))}">📞 ${esc(fmtPhone(b.phone))}</a>` : ''}
       <a class="bpop-map" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener">Cómo llegar ↗</a>
+      ${b.web ? `<a class="bpop-map" href="${esc(b.web)}" target="_blank" rel="noopener">🌐 Web ↗</a>` : ''}
     </div>`;
 }
 

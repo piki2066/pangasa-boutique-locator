@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startSession, query } from './simss.mjs';
 import { mintToken, fetchCatalogMap } from './shopify.mjs';
-import { buildIndex, buildTallajeMap } from './transform.mjs';
+import { buildIndex, buildTallajeMap, webUrl } from './transform.mjs';
 import { geocodeBoutique, geoKey, sleep } from './geocode.mjs';
 
 // Cantidades servidas por posición de talla (TALLA1..TALLA24).
@@ -36,6 +36,22 @@ async function main() {
     if (cod && !envioByCod.has(cod)) envioByCod.set(cod, e);
   }
   console.error(`SIMSS: ${envioByCod.size} clientes con dirección de envío habitual`);
+
+  // Web de cada boutique (WEB_CLIENTE de su ficha): botón «Web» en la tarjeta y en el mapa.
+  // Una sola consulta más por pasada, solo dos columnas. Si falla, se sigue sin webs.
+  const webByCod = new Map();
+  try {
+    const webRows = await query(user, sid, 'EComClientes', { ACTIVE_B2B: true },
+      ['COD_CLIENTE', 'WEB_CLIENTE'], { ACTIVE_B2B: -7 });
+    for (const w of webRows) {
+      const cod = (w.COD_CLIENTE || '').trim();
+      const url = webUrl(w.WEB_CLIENTE);
+      if (cod && url && !webByCod.has(cod)) webByCod.set(cod, url);
+    }
+    console.error(`SIMSS: ${webByCod.size} clientes con web en la ficha`);
+  } catch (e) {
+    console.error('AVISO: webs de clientes no disponibles, sigo sin ellas:', e.message);
+  }
 
   const refs = new Set(rows.map((r) => String(r.COD_SERIE_MODELO || '').trim()).filter(Boolean));
   let catalogMap = new Map();
@@ -77,6 +93,10 @@ async function main() {
     b.postal = (e.COD_POSTAL || '').trim();
     envioApplied += 1;
   }
+  for (const cod of Object.keys(index.boutiques)) {
+    const w = webByCod.get(cod);
+    if (w) index.boutiques[cod].web = w;
+  }
   console.error(`Envío: dirección de envío aplicada a ${envioApplied}/${index.meta.boutiqueCount} boutiques`);
 
   // Correcciones manuales (overrides.json) — pisan SIEMPRE lo que venga de SIMSS.
@@ -87,8 +107,8 @@ async function main() {
     for (const [cod, fields] of Object.entries(ov)) {
       const b = index.boutiques[cod];
       if (!b) continue;
-      for (const k of ['name', 'address', 'postal', 'city', 'province', 'phone']) {
-        if (fields[k]) b[k] = fields[k];
+      for (const k of ['name', 'address', 'postal', 'city', 'province', 'phone', 'web']) {
+        if (fields[k]) b[k] = k === 'web' ? (webUrl(fields[k]) || b.web) : fields[k];
       }
       ovApplied += 1;
     }

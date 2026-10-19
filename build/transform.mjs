@@ -109,3 +109,19 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
     models,
   };
 }
+
+// Web de la boutique (WEB_CLIENTE de su ficha en SIMSS) como enlace que se pueda abrir.
+// «www.x.com» o «x.com» → https://…; «@usuario» → su Instagram; lo que no parezca
+// una web (vacío, un teléfono, texto suelto) → '' y la tarjeta sale sin botón.
+export function webUrl(raw) {
+  let v = String(raw || '').trim().split(/\s+/)[0] || '';
+  v = v.replace(/[;,]+$/, '');
+  if (!v) return '';
+  if (/^@[\w.]+$/.test(v)) return `https://instagram.com/${v.slice(1)}`;
+  if (!/^https?:\/\//i.test(v)) v = `https://${v}`;
+  try {
+    const u = new URL(v);
+    if (!/^https?:$/.test(u.protocol) || !/^[\w-]+(\.[\w-]+)*\.[a-z]{2,}$/i.test(u.hostname)) return '';
+    return u.href;
+  } catch { return ''; }
+}

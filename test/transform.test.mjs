@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildIndex, buildTallajeMap, CONTINUITY_REFS } from '../build/transform.mjs';
+import { buildIndex, buildTallajeMap, CONTINUITY_REFS, webUrl } from '../build/transform.mjs';
 
 // Cantidades por posición: TALLA1=1m, TALLA2=3m, TALLA3=6m, TALLA5=12m (según el tallaje).
 const rows = [
@@ -95,4 +95,16 @@ test('sin tallajeMap las tallas quedan vacías (sin romper)', () => {
   const idx = buildIndex(rows, new Map());
   assert.deepEqual(idx.models[0].sizes, []);
   assert.deepEqual(idx.models[0].boutiques[0].sizes, []);
+});
+
+test('webUrl: la web de la ficha se convierte en enlace, y lo que no es web se descarta', () => {
+  assert.equal(webUrl('www.bedapeques.com'), 'https://www.bedapeques.com/');
+  assert.equal(webUrl('https://www.bedapeques.com/collections/pangasa'), 'https://www.bedapeques.com/collections/pangasa');
+  assert.equal(webUrl('@modainfantiladela'), 'https://instagram.com/modainfantiladela');
+  assert.equal(webUrl(''), '');
+  assert.equal(webUrl(null), '');
+  assert.equal(webUrl('958 70 19 75'), '');
+  assert.equal(webUrl('no tiene'), '');
+  assert.equal(webUrl('www.tutubarcelona.com; '), 'https://www.tutubarcelona.com/');
+  assert.equal(webUrl('neverlandforkids'), '');
 });
