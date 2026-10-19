@@ -114,8 +114,11 @@ export function buildIndex(rows, catalogMap = new Map(), extraExcludeCods = new 
 // «www.x.com» o «x.com» → https://…; «@usuario» → su Instagram; lo que no parezca
 // una web (vacío, un teléfono, texto suelto) → '' y la tarjeta sale sin botón.
 export function webUrl(raw) {
-  let v = String(raw || '').trim().split(/\s+/)[0] || '';
-  v = v.replace(/[;,]+$/, '');
+  // Lo primero antes de un ; , o « - » (algunas fichas llevan dos cosas); si aun asi
+  // queda un espacio dentro («www.BY belén.es») no es una web y no se adivina.
+  const v0 = String(raw || '').trim().split(/[;,]|\s+-\s+/)[0].trim();
+  if (/\s/.test(v0)) return '';
+  let v = v0;
   if (!v) return '';
   if (/^@[\w.]+$/.test(v)) return `https://instagram.com/${v.slice(1)}`;
   if (!/^https?:\/\//i.test(v)) v = `https://${v}`;

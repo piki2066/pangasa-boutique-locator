@@ -107,4 +107,6 @@ test('webUrl: la web de la ficha se convierte en enlace, y lo que no es web se d
   assert.equal(webUrl('no tiene'), '');
   assert.equal(webUrl('www.tutubarcelona.com; '), 'https://www.tutubarcelona.com/');
   assert.equal(webUrl('neverlandforkids'), '');
+  assert.equal(webUrl('www.BY belén.es'), '');
+  assert.equal(webUrl(' www.popjesenprinsjes.nl'), 'https://www.popjesenprinsjes.nl/');
 });
